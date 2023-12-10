@@ -113,6 +113,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [check, test, doc, msrv, miri, clippy, fmt]
     runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -129,27 +130,36 @@ jobs:
             name: Linux
           - os: macos
             extension: dylib
+          - os: macos
+            name: MacOSm1
+            target: aarch64-apple-darwin
+          - os: macos
             name: MacOS
+            target: x86_64-apple-darwin
+    env:
+      target: ${{matrix.target && format('--target={0}', matrix.target)}}
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build ${{matrix.release}}
+      - run: cargo build ${{matrix.release}} ${{env.target}}
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{format('{0}-{1}', matrix.os, matrix.mode)}}
+          name: ${{format('{0}-{1}', matrix.target || matrix.os, matrix.mode)}}
           path: target/${{matrix.mode}}/*backrooms29.${{matrix.extension}}
 
   publish:
     name: Publish
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
-      - run: mkdir debug
-      - run: mv ubuntu-debug/* debug.libbackrooms29.so
-      - run: mv windows-debug/* debug.backrooms29.dll
-      - run: mv macos-debug/* debug.libbackrooms29.dylib
+      - run: mv ubuntu-debug/* libbackrooms29.debug.so
+      - run: mv windows-debug/* backrooms29.debug.dll
+      - run: mv aarch64-apple-darwin-debug/* libbackrooms29.arm64.debug.dylib
+      - run: mv aarch64-apple-darwin-release/* libbackrooms29.arm64.dylib
+      - run: mv x86_64-apple-darwin-debug/* libbackrooms29.debug.dylib
       - uses: softprops/action-gh-release@v1
         with:
           body_path: ${{ github.workspace }}/CHANGELOG.md
@@ -157,4 +167,4 @@ jobs:
             ubuntu-release/*
             windows-release/*
             macos-release/*
-            debug*
+            *.debug.*
