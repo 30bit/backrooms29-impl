@@ -1,0 +1,15 @@
+# Godot
+.godot/
+
+# Rust
+target/
+Cargo.lock
+
+# Editors
+.vscode/
+.idea/
+*.vim
+*.vi
+
+# Mac
+.DS_Store

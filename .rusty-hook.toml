@@ -1,0 +1,12 @@
+[hooks]
+pre-push = """
+    export RUSTFLAGS=-Dwarnings \
+    && cargo +nightly fmt --all -- --check \
+    && cargo check \
+    && cargo +nightly clippy --all-features --tests --benches -- -Dclippy::all -Dclippy::pedantic \
+    && cargo +nightly doc --all-features \
+    && cargo test --all-features --release --tests
+"""
+
+[logging]
+verbose = true

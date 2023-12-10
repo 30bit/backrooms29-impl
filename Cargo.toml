@@ -1,0 +1,14 @@
+[package]
+name       = "backrooms29"
+version    = "0.0.0"
+authors    = ["Artur Helmanau <m30bit@gmail.com>"]
+license    = "MIT OR Apache-2.0"
+edition    = "2021"
+repository = "https://github.com/30bit/backrooms29-impl"
+readme     = "README.md"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }

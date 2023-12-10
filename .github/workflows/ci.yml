@@ -1,0 +1,160 @@
+name: Rust
+
+on: [push, pull_request]
+
+permissions:
+  contents: write
+
+env:
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  check:
+    name: ${{format('Build ({0})', matrix.name || matrix.rust)}}
+    runs-on: ${{matrix.os || 'ubuntu'}}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, beta]
+        include:
+          - rust: nightly
+            components: rustc-dev
+          - rust: nightly
+            name: WebAssembly
+            target: wasm32-unknown-unknown
+            features: godot/experimental-wasm
+          - rust: nightly
+            name: WASI
+            target: wasm32-wasi
+            features: godot/experimental-wasm
+          - rust: nightly
+            name: Windows
+            os: windows
+    env:
+      target: ${{matrix.target && format('--target={0}', matrix.target)}}
+      features: ${{matrix.features && format('--features "{0}"', matrix.features)}}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          targets: ${{matrix.target}}
+          components: ${{matrix.components}}
+      - run: cargo check ${{env.target}} ${{env.features}}
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: llvm-tools, rustc-dev
+      - run: cargo test --all-features --release --tests
+
+  doc:
+    name: Doc
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: --cfg=doc_cfg -Dbroken_intra_doc_links
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo doc --all-features
+
+  msrv:
+    name: Minimal versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo update -Z minimal-versions
+      - run: cargo check --all-features
+
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+    env:
+      MIRIFLAGS: -Zmiri-strict-provenance
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@miri
+      - run: cargo miri test --all-features
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy, rustc-dev
+      - run: "cargo clippy --all-features --tests --benches -- -Dclippy::all -Dclippy::pedantic"
+
+  fmt:
+    name: Fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, rustc-dev
+      - run: cargo fmt --all -- --check
+
+  package:
+    name: ${{format('Package ({0}{1})', matrix.mode == 'debug' && 'd' || '', matrix.name)}}
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [check, test, doc, msrv, miri, clippy, fmt]
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, ubuntu, macos]
+        mode: [debug, release]
+        include:
+          - mode: release
+            release: "--release"
+          - os: windows
+            extension: dll
+            name: Windows
+          - os: ubuntu
+            extension: so
+            name: Linux
+          - os: macos
+            extension: dylib
+            name: MacOS
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build ${{matrix.release}}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{format('{0}-{1}', matrix.os, matrix.mode)}}
+          path: target/${{matrix.mode}}/*backrooms29.${{matrix.extension}}
+
+  publish:
+    name: Publish
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+      - run: mkdir debug
+      - run: mv ubuntu-debug/* debug.libbackrooms29.so
+      - run: mv windows-debug/* debug.backrooms29.dll
+      - run: mv macos-debug/* debug.libbackrooms29.dylib
+      - uses: softprops/action-gh-release@v1
+        with:
+          body_path: ${{ github.workspace }}/CHANGELOG.md
+          files: |
+            ubuntu-release/*
+            windows-release/*
+            macos-release/*
+            debug*
