@@ -138,6 +138,7 @@ jobs:
             target: x86_64-apple-darwin
     env:
       target: ${{matrix.target && format('--target={0}', matrix.target)}}
+      dir: ${{matrix.target && format('{0}/', matrix.target)}}
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
@@ -145,7 +146,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ${{format('{0}-{1}', matrix.target || matrix.os, matrix.mode)}}
-          path: target/${{matrix.mode}}/*backrooms29.${{matrix.extension}}
+          path: target/${{env.dir}}${{matrix.mode}}/*backrooms29.${{matrix.extension}}
 
   publish:
     name: Publish
@@ -160,6 +161,7 @@ jobs:
       - run: mv aarch64-apple-darwin-debug/* libbackrooms29.arm64.debug.dylib
       - run: mv aarch64-apple-darwin-release/* libbackrooms29.arm64.dylib
       - run: mv x86_64-apple-darwin-debug/* libbackrooms29.debug.dylib
+      - run: mv x86_64-apple-darwin-release/* libbackrooms29.dylib
       - uses: softprops/action-gh-release@v1
         with:
           body_path: ${{ github.workspace }}/CHANGELOG.md
