@@ -109,7 +109,7 @@ jobs:
       - run: cargo fmt --all -- --check
 
   package:
-    name: ${{format('Package ({0}{1})', matrix.mode == 'debug' && 'd' || '', matrix.name)}}
+    name: ${{format('Package ({0}{1})', matrix.name, matrix.mode == 'debug' && '.debug' || '')}}
     if: startsWith(github.ref, 'refs/tags/')
     needs: [check, test, doc, msrv, miri, clippy, fmt]
     runs-on: ${{ matrix.os }}-latest
@@ -131,10 +131,12 @@ jobs:
           - os: macos
             extension: dylib
           - os: macos
-            name: MacOSm1
+            name: MacOS
+          - name: MacOS
             target: aarch64-apple-darwin
           - os: macos
-            name: MacOS
+            name: MacOS.arm
+          - name: MacOS.arm
             target: x86_64-apple-darwin
     env:
       target: ${{matrix.target && format('--target={0}', matrix.target)}}
