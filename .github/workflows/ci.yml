@@ -132,6 +132,7 @@ jobs:
             os: macos
             target: x86_64-apple-darwin
           - name: MacOS.arm
+            os: macos
             target: aarch64-apple-darwin
           - os: macos
             extension: dylib
