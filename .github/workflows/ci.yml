@@ -117,27 +117,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows, ubuntu, macos]
+        name: [Windows, Linux, MacOS, MacOS.arm]
         mode: [debug, release]
         include:
           - mode: release
-            release: "--release"
-          - os: windows
+            release: --release
+          - name: Windows
+            os: windows
             extension: dll
-            name: Windows
-          - os: ubuntu
+          - name: Linux
+            os: ubuntu
             extension: so
-            name: Linux
-          - os: macos
-            extension: dylib
-          - os: macos
-            name: MacOS
           - name: MacOS
+            os: macos
+            target: x86_64-apple-darwin
+          - name: MacOS.arm
             target: aarch64-apple-darwin
           - os: macos
-            name: MacOS.arm
-          - name: MacOS.arm
-            target: x86_64-apple-darwin
+            extension: dylib
     env:
       target: ${{matrix.target && format('--target={0}', matrix.target)}}
       dir: ${{matrix.target && format('{0}/', matrix.target)}}
