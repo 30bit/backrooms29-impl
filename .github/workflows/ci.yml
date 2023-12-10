@@ -131,10 +131,10 @@ jobs:
           - name: MacOS
             os: macos
             target: x86_64-apple-darwin
+            extension: dylib
           - name: MacOS.arm
             os: macos
             target: aarch64-apple-darwin
-          - os: macos
             extension: dylib
     env:
       target: ${{matrix.target && format('--target={0}', matrix.target)}}
